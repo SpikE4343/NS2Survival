@@ -1,0 +1,8 @@
+<game>
+    <name>ns2</name>
+    <description>Survival</description>
+    <client>lua/SurvivalClient.lua</client>
+    <predict>lua/SurvivalPredict.lua</predict>
+    <server>lua/SurvivalServer.lua</server>
+    <loading>lua/Loading.lua</loading>
+</game>

@@ -1,0 +1,7 @@
+name        = "Survival"
+source_dir  = "source"
+output_dir  = "output"
+description = [=[Survival]=]
+image       = "preview.jpg"
+tag_modtype = "Custom Game Mode"
+tag_support = "Passes Default Consistency"
