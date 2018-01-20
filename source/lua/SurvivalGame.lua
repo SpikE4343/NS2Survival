@@ -9,13 +9,20 @@ Script.Load("lua/Fade.lua")
 Script.Load("lua/SurvivalUnitMixin.lua")
 Script.Load("lua/DamageTypes.lua")
 
+-- Main logic behind Survival Mode
+
+-- TODO: 
+--  * GUI to tweak parameters on the fly/save
+--  * Dynamic/adaptive tuning of parameters to adjust for player skill and count
+--
 class 'SurvivalGame'
 
 local kState = enum({'Initial', 'StartUp', 'SpawnWait', 'Spawning', 'Complete'})
 
-local kSpawnInterval = 60
+local kDoubleWaveInterval = 4
+local kSpawnInterval = 60 * 2
 local kMinSpawnInterval = 10
-local kSpawnIntervalStep = 5
+local kSpawnIntervalStep = 0.05
 
 function SurvivalGame:Init(startEntity, targetEntity)
 
@@ -85,16 +92,24 @@ function SurvivalGame:UpdateState()
         if self.target and self.start and GetGameInfoEntity():GetGameStarted() and not GetGameInfoEntity():GetWarmUpActive() then
             self.state = kState.StartUp
         end
+    --
+    -- Beginging of the game, setup parameters
     elseif self.state == kState.StartUp then
         self.state = kState.SpawnWait
         self.waves = 0
         self.lastSpawn = now
         self.startTime = now
-
+        self.completeTime = now
+        self.spawnInterval = kSpawnInterval
+    --
+    -- waiting for next spawn wave
     elseif self.state == kState.SpawnWait then
         if now >= (self.lastSpawn + self.spawnInterval)then
             self.state = kState.Spawning
-        end         
+        end
+        
+    -- 
+    -- create waves of units 
     elseif self.state == kState.Spawning then
 
         Shared.Message( string.format("Spawning wave: %d", self.waves ))
@@ -104,7 +119,7 @@ function SurvivalGame:UpdateState()
         
         self.lastSpawn = now
         
-        self.spawnInterval = self.spawnInterval - kSpawnIntervalStep
+        self.spawnInterval = self.spawnInterval * 1-kSpawnIntervalStep
         if self.spawnInterval < kMinSpawnInterval then
             self.spawnInterval = kMinSpawnInterval
         end
@@ -119,12 +134,13 @@ function SurvivalGame:UpdateState()
         -- else
         --     self.state = kState.SpawnWait
         -- end
+    -- 
+    -- game is done, save time
     elseif self.state == kState.Complete then
 
-        Print(string.format("Survival Complete"))
-        Shared.Message( string.format("Survival Complete"))
+        
         -- TODO: allow reset
-        self.completeTime = now
+        --self.completeTime = now
     end
 
 end
@@ -149,23 +165,27 @@ function SurvivalGame:SpawnWave(wave)
         return 0
     end
 
-    for id,spawn in ipairs(spawndata) do
-        Print(string.format("Spawning type: %s, count: %d", spawn.type, spawn.baseCount))
-        for i=1,spawn.baseCount do
-            local unit = self:SpawnUnit(spawn.type)
+    local waveCount = wave % kDoubleWaveInterval + 1
 
-            InitMixin(unit, OrdersMixin, { kMoveOrderCompleteDistance = kPlayerMoveOrderCompleteDistance })
-            InitMixin(unit, PathingMixin)
-            InitMixin(unit, SurvivalUnitMixin)
+    for i=1,waveCount do
+        for id,spawn in ipairs(spawndata) do
+            Print(string.format("Spawning type: %s, count: %d", spawn.type, spawn.baseCount))
+            for i=1,spawn.baseCount do
+                local unit = self:SpawnUnit(spawn.type)
 
-            unit:SetTeamNumber(2)
-            unit:SetSpawnWave(wave)
-            
+                InitMixin(unit, OrdersMixin, { kMoveOrderCompleteDistance = kPlayerMoveOrderCompleteDistance })
+                InitMixin(unit, PathingMixin)
+                InitMixin(unit, SurvivalUnitMixin)
 
-            -- attack com chair
-            unit:GiveOrder(kTechId.Attack, self.target:GetId(), self.target:GetOrigin(), nil, true, true)
+                unit:SetTeamNumber(2)
+                unit:SetSpawnWave(wave)
+                
+
+                -- attack com chair
+                unit:GiveOrder(kTechId.Attack, self.target:GetId(), self.target:GetOrigin(), nil, true, true)
+            end
+
         end
-
     end
 
     return wave
@@ -187,11 +207,22 @@ function SurvivalGame:SpawnUnit(type)
     return unit
 end
 
+function SurvivalGame:EndGame()
+    -- TODO: kill all brains so units stop
+    self.state = kState.Complete
+    self.completeTime =  Shared.GetTime()
+
+    Print(string.format("Survival Complete: %.2f min(s)", self:GetSurvivalTime()/60.0 ))
+    Shared.Message( string.format("Survival Complete: %.2f min(s)", self:GetSurvivalTime()/60.0 ))
+end
+
 
 function SurvivalGame:OnEntityDestroy(entity)
 
-    if self.target ~= nil and entity:GetId() == self.target:GetId() then
-        self.state = kState.Complete
-    end
-    
+   
+end
+
+
+function SurvivalGame:GetSurvivalTime()
+    return self.completeTime - self.startTime
 end

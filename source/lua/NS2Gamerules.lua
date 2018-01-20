@@ -20,6 +20,7 @@ NS2Gamerules.kMapName = "ns2_gamerules"
 kGameEndAutoConcedeCheckInterval = 0.75
 kDrawGameWindow = 0.75
 
+
 local kRookieModeDelay = 20
 local kPregameLength = 3
 local kTimeToReadyRoom = 8
@@ -1118,26 +1119,18 @@ if Server then
     
         if self:GetGameState() == kGameState.Started then
             
-            local winningTeamType = winningTeam and winningTeam.GetTeamType and winningTeam:GetTeamType() or kNeutralTeamType
-            
-            if winningTeamType == kMarineTeamType then
-
-                self:SetGameState(kGameState.Team1Won)
-                PostGameViz("Marines Win!")
-                
-            elseif winningTeamType == kAlienTeamType then
-
-                self:SetGameState(kGameState.Team2Won)
-                PostGameViz("Aliens Win!")
-
-            else
-
-                self:SetGameState(kGameState.Draw)
-                PostGameViz("Draw Game!")
-
+            if self.game then
+                self.game:EndGame()
             end
-            
-            Server.SendNetworkMessage( "GameEnd", { win = winningTeamType }, true)
+
+            local survivalTime = self.game:GetSurvivalTime()
+            local hours = survivalTime / (60 * 60)
+            local minutes = (survivalTime % (60 * 60 )) / 60
+
+
+            PostGameViz( string.format("Survival: %2d:%2d", hours, minutes))
+
+            Server.SendNetworkMessage( "GameEnd", { win = kMarineTeamType, time = survivalTime }, true)
             
             self.team1:ClearRespawnQueue()
 
@@ -1158,7 +1151,7 @@ if Server then
                 self.playerRanking:EndGame(winningTeam)
             end
             TournamentModeOnGameEnd()
-            
+
             -- Check if the game ended due to either team conceding.  If so, do the concede
             -- sequence.
             if autoConceded then
@@ -1170,6 +1163,8 @@ if Server then
             else
                 self:CheckForConcedeSequence()
             end
+
+            self:SetGameState(kGameState.Team1Won)
 
         end
         

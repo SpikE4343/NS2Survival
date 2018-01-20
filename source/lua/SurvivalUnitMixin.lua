@@ -1,6 +1,8 @@
 
 if Server then
 
+    local kEaseInWaves = 6
+
     Script.Load("lua/bots/Bot.lua")
 
     SurvivalUnitMixin = CreateMixin(SurvivalUnitMixin)
@@ -30,7 +32,7 @@ if Server then
     
     function SurvivalUnitMixin:ModifyDamageTaken(damageTable, attacker, doer, damageType, hitPoint)
     
-        local multiplier = 4/self.wave
+        local multiplier = kEaseInWaves/self.wave
     
         -- if self:isa("Skulk") then
         --     multiplier = 6
