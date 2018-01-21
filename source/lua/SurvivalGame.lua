@@ -6,6 +6,7 @@ Script.Load("lua/Skulk.lua")
 Script.Load("lua/Gorge.lua")
 Script.Load("lua/Lerk.lua")
 Script.Load("lua/Fade.lua")
+Script.Load("lua/SurvivalUnit.lua")
 Script.Load("lua/SurvivalUnitMixin.lua")
 Script.Load("lua/DamageTypes.lua")
 
@@ -20,7 +21,7 @@ class 'SurvivalGame'
 local kState = enum({'Initial', 'StartUp', 'SpawnWait', 'Spawning', 'Complete'})
 
 local kDoubleWaveInterval = 4
-local kSpawnInterval = 60 * 2
+local kSpawnInterval = 60
 local kMinSpawnInterval = 10
 local kSpawnIntervalStep = 0.05
 
@@ -41,39 +42,39 @@ function SurvivalGame:Init(startEntity, targetEntity)
         {
             wave = 1,
             units = {
-                { type = Skulk.kMapName, baseCount = 10 },
-                { type = Gorge.kMapName, baseCount = 4 },
+                { type = kTechId.Skulk, baseCount = 10 },
+                { type = kTechId.Gorge, baseCount = 4 },
             }
         },
         {
             wave = 3,
             units={
-                { type = Skulk.kMapName, baseCount = 10 },
-                { type = Gorge.kMapName, baseCount = 4 },
-                { type = Lerk.kMapName, baseCount = 2 },
-                { type = Fade.kMapName, baseCount = 2 }
+                { type = kTechId.Skulk, baseCount = 10 },
+                { type = kTechId.Gorge, baseCount = 4 },
+                { type = kTechId.Lerk, baseCount = 2 },
+                { type = kTechId.Fade, baseCount = 2 }
             }
         },
 
         {
             wave = 6,
             units={
-                { type = Onos.kMapName, baseCount = 1 },
-                { type = Skulk.kMapName, baseCount = 10 },
-                { type = Gorge.kMapName, baseCount = 4 },
-                { type = Lerk.kMapName, baseCount = 2 },
-                { type = Fade.kMapName, baseCount = 2 }
+                { type = kTechId.Onos, baseCount = 1 },
+                { type = kTechId.Skulk, baseCount = 10 },
+                { type = kTechId.Gorge, baseCount = 4 },
+                { type = kTechId.Lerk, baseCount = 2 },
+                { type = kTechId.Fade, baseCount = 2 }
             }
         },
         
         {
             wave = 10,
             units={
-                { type = Onos.kMapName, baseCount = 2 },
-                { type = Skulk.kMapName, baseCount = 10 },
-                { type = Gorge.kMapName, baseCount = 4 },
-                { type = Lerk.kMapName, baseCount = 2 },
-                { type = Fade.kMapName, baseCount = 2 }
+                { type = kTechId.Onos, baseCount = 2 },
+                { type = kTechId.Skulk, baseCount = 10 },
+                { type = kTechId.Gorge, baseCount = 4 },
+                { type = kTechId.Lerk, baseCount = 2 },
+                { type = kTechId.Fade, baseCount = 2 }
             }
         }
     }
@@ -97,7 +98,7 @@ function SurvivalGame:UpdateState()
     elseif self.state == kState.StartUp then
         self.state = kState.SpawnWait
         self.waves = 0
-        self.lastSpawn = now
+        self.lastSpawn = now - kSpawnInterval
         self.startTime = now
         self.completeTime = now
         self.spawnInterval = kSpawnInterval
@@ -172,15 +173,9 @@ function SurvivalGame:SpawnWave(wave)
             Print(string.format("Spawning type: %s, count: %d", spawn.type, spawn.baseCount))
             for i=1,spawn.baseCount do
                 local unit = self:SpawnUnit(spawn.type)
-
-                InitMixin(unit, OrdersMixin, { kMoveOrderCompleteDistance = kPlayerMoveOrderCompleteDistance })
-                InitMixin(unit, PathingMixin)
-                InitMixin(unit, SurvivalUnitMixin)
-
                 unit:SetTeamNumber(2)
                 unit:SetSpawnWave(wave)
                 
-
                 -- attack com chair
                 unit:GiveOrder(kTechId.Attack, self.target:GetId(), self.target:GetOrigin(), nil, true, true)
             end
@@ -200,8 +195,9 @@ function SurvivalGame:SpawnUnit(type)
     angles.roll = 0
 
     local origin = GetGroundAt(start, start:GetOrigin() + Vector(0, .1, 0), PhysicsMask.Movement, EntityFilterOne(start))
-    local unit = CreateEntity(type, origin, 2)
+    local unit = CreateEntity(SurvivalUnit.kMapName, origin, 2)
     
+    unit:SetEmulation(type)
     unit:SetAngles(angles)   
     
     return unit

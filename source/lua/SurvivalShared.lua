@@ -7,5 +7,6 @@ elseif Predict then
 end
 
 Script.Load("lua/Class.lua")
+Script.Load("lua/SurvivalDoor.lua")
 Script.Load("lua/NS2Gamerules.lua")
 Script.Load("lua/weapon/FlameShotgun.lua")

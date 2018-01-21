@@ -52,6 +52,21 @@ if Server then
         
     end
 
+    -- --- DoorMixin
+    function SurvivalUnitMixin:OnOverrideDoorInteraction(inEntity)
+
+        -- can't open survival doors, must break them down
+        if inEntity:isa("SurvivalDoor") then 
+            return false, 0
+        end
+
+        if self:GetVelocityLength() > 8 then
+            return true, 10
+        end
+
+        return true, 6
+    end
+
     function SurvivalUnitMixin:OnUpdate(deltaTime)
 
         if not self:GetIsAlive() then
